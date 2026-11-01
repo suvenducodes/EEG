@@ -34,4 +34,15 @@ With the mu/beta filter frontal channels are at chance. With a wide filter, 8 fr
 3. Randomize cue position across trials, or remove EOG with ICA/regression, or drop frontal channels and high-pass/band-pass to mu/beta.
 
 ## Part 2
-(to be completed)
+## Part 2
+1. Hypothesis (written before coding): Per-timestep attention has no locality or spatial prior, so on 8 subjects it overfits a 482x482 attention matrix. A conv stem (temporal filter + depthwise spatial filter, as in EEGNet) that cuts the sequence to about 32 tokens should reduce seed variance, with little change in peak accuracy.
+
+2. What I changed: YourModel = EEGNet-style conv stem (temporal conv, depthwise spatial conv across all 64 electrodes, pooling by 15) producing about 32 tokens, then a 2-layer transformer encoder with CLS token. Attention matrix shrinks from 482^2 (about 232k) to about 33^2 (about 1.1k). The spatial filters can express the anterior-posterior (C3/C4 vs Cz) contrast of this bilateral task.
+
+3. Results (seeds 0,1,2, test = subjects 9-10, 90 trials, 30 epochs):
+- EEGNet: peak best 0.611 / worst 0.533 / mean 0.570; final-epoch mean 0.563
+- YourModel: peak best 0.611 / worst 0.589 / mean 0.596; final-epoch mean 0.526
+- Vanilla transformer: did not finish on a 2-core Colab CPU in the time limit (482 tokens, O(T^2) attention); no number reported.
+Peak numbers select the best epoch on test and are optimistic; final-epoch numbers are the honest ones. At 90 trials, about 62% is needed for p<0.05, so none of these beat chance. Peak spread was smaller for YourModel (consistent with the hypothesis), but final accuracy was lower, so I do not claim a gain. Any benefit likely comes from the conv stem, which is EEGNet's front end, not from attention.
+
+4. Figure: figure.png (t-SNE of test embeddings) was not generated in this run.
